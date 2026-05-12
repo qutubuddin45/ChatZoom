@@ -5,21 +5,18 @@
   <meta charset="UTF-8" />
   <title>Register | ChatZoom</title>
 
-  <!-- TailwindCSS for styling -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- SweetAlert for alerts -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="bg-gray-100 min-h-screen flex flex-col">
 
-  <!-- 🔝 Navbar with Logo -->
+  <!-- Navbar -->
   <nav class="bg-white shadow px-6 py-4">
-    <a href="/index.html" class="text-2xl font-bold text-green-600">ChatZoom</a>
+    <a href="./index.html" class="text-2xl font-bold text-green-600">ChatZoom</a>
   </nav>
 
-  <!-- 🧾 Centered Register Form -->
+  <!-- Register Form -->
   <div class="flex-grow flex justify-center items-center">
     <form id="registerForm" class="bg-white p-8 rounded shadow-md w-96 space-y-4">
       <h2 class="text-2xl font-semibold text-center text-green-600">Register</h2>
@@ -57,12 +54,11 @@
 
       <p class="text-sm text-center">
         Already have an account?
-        <a href="/login.html" class="text-blue-600">Login</a>
+        <a href="./login.html" class="text-blue-600">Login</a>
       </p>
     </form>
   </div>
 
-  <!-- ✅ Registration Logic with SweetAlert -->
   <script>
     document.getElementById("registerForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -72,9 +68,11 @@
       const password = document.getElementById("password").value;
 
       try {
-        const res = await fetch("/api/user/register", {
+        const res = await fetch("https://chatzoom.onrender.com/api/user/register", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({ name, email, password })
         });
 
@@ -82,25 +80,27 @@
 
         if (res.ok) {
           Swal.fire({
-            icon: 'success',
-            title: 'Registered successfully!',
-            text: 'You can now log in.',
-            confirmButtonText: 'Go to Login'
+            icon: "success",
+            title: "Registered successfully!",
+            text: "You can now log in.",
+            confirmButtonText: "Go to Login"
           }).then(() => {
-            window.location.href = "/login.html";
+            window.location.href = "./login.html";
           });
+
         } else {
           Swal.fire({
-            icon: 'error',
-            title: 'Registration Failed',
-            text: responseText || 'Please try again.'
+            icon: "error",
+            title: "Registration Failed",
+            text: responseText || "Please try again."
           });
         }
+
       } catch (error) {
         Swal.fire({
-          icon: 'error',
-          title: 'Server Error',
-          text: 'Unable to connect. Try again later.'
+          icon: "error",
+          title: "Server Error",
+          text: "Unable to connect."
         });
       }
     });
