@@ -27,16 +27,24 @@ const server = http.createServer(app);
 
 const PORT = process.env.PORT || 8080;
 
+// Allowed frontend
+const FRONTEND_URL = "https://chat-zoom.vercel.app";
+
 // Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: FRONTEND_URL,
     methods: ["GET", "POST"],
+    credentials: true
   },
 });
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: FRONTEND_URL,
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -60,9 +68,7 @@ app.use("/auth", githubAuthRouter);
 // Contact API
 app.use("/api/contact", contactRouter);
 
-// ===============================
-// IMAGE UPLOAD SETUP
-// ===============================
+// Image Upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/");
@@ -74,7 +80,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Upload API
 app.post("/uploads", upload.single("image"), (req, res) => {
   try {
     if (!req.file) {
@@ -90,9 +95,7 @@ app.post("/uploads", upload.single("image"), (req, res) => {
   }
 });
 
-// ===============================
 // MongoDB Connection
-// ===============================
 mongoose
   .connect(process.env.mongoURL)
   .then(() => console.log("✅ MongoDB Connected"))
@@ -101,14 +104,12 @@ mongoose
 // Routes
 app.use("/api/user", userRouter);
 
-// Protected Profile Route
+// Protected Route
 app.get("/profile", verifyToken, (req, res) => {
   res.json({ name: req.user.name });
 });
 
-// ===============================
-// Socket.IO Logic
-// ===============================
+// Socket Logic
 let onlineUsers = {};
 
 io.on("connection", (socket) => {
