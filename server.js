@@ -1,15 +1,16 @@
-// 📦 Import Core Modules and Packages
+// Import Core Modules and Packages
 const express = require("express");
 const http = require("http");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
+const multer = require("multer");
 const { Server } = require("socket.io");
 const contactRouter = require("./routes/contact.route");
 
 require("dotenv").config();
 
-// 📦 Import Custom Modules
+// Import Custom Modules
 const userRouter = require("./routes/user.route");
 const verifyToken = require("./middlewares/verifyToken");
 const Message = require("./models/Message");
@@ -20,61 +21,117 @@ const passport = require("passport");
 require("./middlewares/passport");
 const githubAuthRouter = require("./routes/github.route");
 
-// 🚀 App and Server Setup
+// App and Server Setup
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
 
-// 🧩 Middlewares
+const PORT = process.env.PORT || 8080;
+
+// Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Static folders
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.static(path.join(__dirname, "public")));
 
 // Github Auth
-app.use(session({ secret: "secret", resave: false, saveUninitialized: false }));
+app.use(
+  session({
+    secret: "secret",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
 app.use(passport.initialize());
 app.use(passport.session());
 app.use("/auth", githubAuthRouter);
 
-// Nodemailer
+// Contact API
 app.use("/api/contact", contactRouter);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// 🌐 Connect to MongoDB
+// ===============================
+// IMAGE UPLOAD SETUP
+// ===============================
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage });
+
+// Upload API
+app.post("/uploads", upload.single("image"), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    res.json({
+      imageUrl: `https://chatzoom.onrender.com/uploads/${req.file.filename}`,
+    });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ error: "Upload failed" });
+  }
+});
+
+// ===============================
+// MongoDB Connection
+// ===============================
 mongoose
   .connect(process.env.mongoURL)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => console.error("❌ MongoDB Connection Failed:", err));
 
-// 📍 Routes
+// Routes
 app.use("/api/user", userRouter);
 
-// ✅ Protected Profile Route (JWT)
+// Protected Profile Route
 app.get("/profile", verifyToken, (req, res) => {
   res.json({ name: req.user.name });
 });
 
-// 🌐 WebSocket (Socket.IO) Logic
+// ===============================
+// Socket.IO Logic
+// ===============================
 let onlineUsers = {};
 
 io.on("connection", (socket) => {
-  // 🟢 User joins a room
-  socket.on("joinRoom", ({ username, room }) => {
+  console.log("🟢 New user connected");
+
+  socket.on("joinRoom", async ({ username, room }) => {
     socket.join(room);
     socket.username = username;
     socket.room = room;
 
     onlineUsers[socket.id] = username;
-
-    // 👥 Update user list to all clients
     io.emit("userList", onlineUsers);
 
-    // 📢 Notify others in room
     socket.to(room).emit("welcome", `${username} joined room: ${room}`);
+
+    try {
+      const messages = await Message.find({ room }).sort({ timestamp: 1 });
+      socket.emit("loadMessages", messages);
+    } catch (err) {
+      console.error(err);
+    }
   });
 
-  // 💬 Handle incoming chat messages
   socket.on("gyan", async (msg) => {
     const message = new Message({
       username: socket.username,
@@ -87,11 +144,18 @@ io.on("connection", (socket) => {
     io.to(socket.room).emit("chatMessage", {
       username: socket.username,
       content: msg,
+      timestamp: message.timestamp,
+    });
+  });
+
+  socket.on("sendImage", (imageUrl) => {
+    io.to(socket.room).emit("receiveImage", {
+      username: socket.username,
+      imageUrl,
       timestamp: new Date(),
     });
   });
 
-  // ✍️ Typing Indicator
   socket.on("typing", () => {
     socket.to(socket.room).emit("typing", `${socket.username} is typing...`);
   });
@@ -100,30 +164,14 @@ io.on("connection", (socket) => {
     socket.to(socket.room).emit("stopTyping");
   });
 
-  // 📩 Room Invitation
-  socket.on("inviteToRoom", ({ targetSocketId, room }) => {
-    io.to(targetSocketId).emit("roomInvite", {
-      room,
-      from: socket.username,
-    });
-  });
-
-  // ✅ Accept Room Invitation
-  socket.on("acceptInvite", ({ room }) => {
-    socket.join(room);
-    socket.room = room;
-
-    socket.to(room).emit("welcome", `${socket.username} joined the room`);
-  });
-
-  // 🔴 User Disconnects
   socket.on("disconnect", () => {
     delete onlineUsers[socket.id];
     io.emit("userList", onlineUsers);
+    console.log("🔴 User disconnected");
   });
 });
 
-// 🚀 Start the Server
-server.listen(process.env.port, () => {
-  console.log("🚀 Server running at http://localhost:8080");
+// Start Server
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });

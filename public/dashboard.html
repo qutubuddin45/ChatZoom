@@ -4,179 +4,188 @@
 <head>
   <meta charset="UTF-8" />
   <title>ChatZoom | Dashboard</title>
-  <!-- TailwindCSS for styling -->
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Socket.IO client for real-time communication -->
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
 
 <body class="bg-gray-100 h-screen flex justify-center items-center">
 
-  <!-- 💬 Chat Container -->
   <div class="w-full max-w-md h-[90vh] bg-white shadow-lg rounded-lg flex flex-col">
 
-    <!-- 🔝 Header -->
-    <div class="bg-green-600 text-white text-lg font-semibold px-4 py-3 rounded-t-lg flex justify-between items-center">
+    <!-- Header -->
+    <div class="bg-green-600 text-white text-lg font-semibold px-4 py-3 flex justify-between">
       <span id="chat-room">Room: general</span>
-      <button onclick="logout()" class="text-sm bg-red-500 px-2 py-1 rounded hover:bg-red-600">Logout</button>
+      <button onclick="logout()" class="bg-red-500 px-2 py-1 rounded">Logout</button>
     </div>
 
-    <!-- 👥 Online Users Dropdown -->
-    <div class="px-4 pt-2">
-      <select id="userSelect" class="text-sm p-2 border rounded w-full">
-        <option disabled selected>Invite someone to your room</option>
-      </select>
-      <button onclick="inviteUser()" class="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
-        Invite User
-      </button>
-    </div>
+    <!-- Messages -->
+    <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 text-sm"></div>
 
-    <!-- 📜 Chat Messages Area -->
-    <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 text-sm scroll-smooth"></div>
-
-    <!-- ✍️ Typing Indicator -->
+    <!-- Typing -->
     <div id="typing" class="text-xs text-gray-500 px-4 py-1 h-5"></div>
 
-    <!-- 📩 Message Input Area -->
-    <div class="p-4 flex gap-2 border-t">
-      <input id="ip" type="text" placeholder="Type a message 😄"
-        class="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-        oninput="handleTyping()" />
-      <button onclick="sendMessage()"
-        class="bg-green-600 text-white rounded-full px-5 py-2 font-semibold hover:bg-green-700 transition">
-        Send
-      </button>
+    <!-- INPUT AREA (FIXED UI) -->
+    <div class="p-3 border-t flex flex-col gap-2">
+
+      <!-- TEXT ROW -->
+      <div class="flex gap-2">
+        <input id="ip" type="text" placeholder="Type message..."
+          class="flex-1 border rounded-full px-4 py-2"
+          oninput="handleTyping()" />
+
+        <button onclick="sendMessage()"
+          class="bg-green-600 text-white px-4 py-2 rounded-full">
+          Send
+        </button>
+      </div>
+
+      <!-- IMAGE ROW -->
+      <div class="flex gap-2 items-center">
+        <input type="file" id="imageInput" class="text-xs w-full" />
+
+        <button onclick="sendImage()"
+          class="bg-blue-500 text-white px-3 py-2 rounded">
+          Upload
+        </button>
+      </div>
+
     </div>
 
   </div>
 
-  <!-- 📜 Scripts -->
-  <script>
+<script>
 
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token") || localStorage.getItem("token");
-    const name = params.get("name") || localStorage.getItem("name");
+const name = localStorage.getItem("name") || "User";
+let room = prompt("Enter room:", "general") || "general";
+document.getElementById("chat-room").innerText = "Room: " + room;
 
-    if (!token || !name) {
-      alert("You must login first.");
-      window.location.href = "/login.html";
-    }
+const socket = io("https://chatzoom.onrender.com");
 
-    // 🔁 Prompt for room name or use default
-    let room = prompt("Enter room name to join:", "general") || "general";
-    document.getElementById("chat-room").innerText = `Room: ${room}`;
+const input = document.getElementById("ip");
+const messagesDiv = document.getElementById("messages");
+const typingDiv = document.getElementById("typing");
 
-    // 🔌 Connect to socket server
-    const socket = io("http://localhost:8080", { transports: ["websocket"] });
+// join room
+socket.on("connect", () => {
+  socket.emit("joinRoom", { username: name, room });
+});
 
-    // 📌 Elements
-    const input = document.getElementById("ip");
-    const messagesDiv = document.getElementById("messages");
-    const typingDiv = document.getElementById("typing");
-    let mySocketId;
+// ================= TEXT MESSAGE =================
+function sendMessage() {
+  const msg = input.value.trim();
+  if (msg) {
+    socket.emit("gyan", msg);
+    input.value = "";
+    socket.emit("stopTyping");
+  }
+}
 
-    // ✅ Join the room on connection
-    socket.on("connect", () => {
-      mySocketId = socket.id;
-      socket.emit("joinRoom", { username: name, room });
+// show text
+socket.on("chatMessage", (msg) => {
+  appendMessage(msg.username, msg.content, msg.timestamp);
+});
+
+// ================= IMAGE SEND (FIXED) =================
+async function sendImage() {
+  const fileInput = document.getElementById("imageInput");
+  const file = fileInput.files[0];
+
+  if (!file) {
+    alert("Select image first");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("image", file);
+
+  try {
+    const res = await fetch("https://chatzoom.onrender.com/uploads", {
+      method: "POST",
+      body: formData
     });
 
-    // 📤 Send message
-    function sendMessage() {
-      const msg = input.value.trim();
-      if (msg) {
-        socket.emit("gyan", msg);
-        input.value = "";
-        socket.emit("stopTyping");
-      }
-    }
+    const data = await res.json();
 
-    // 🧱 Append message to chat area
-    function appendMessage({ username: sender, content, timestamp }) {
-      const bubble = document.createElement("div");
-      const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const isMine = sender === name;
+    console.log("Uploaded:", data);
 
-      bubble.className = `max-w-[70%] px-4 py-2 rounded-lg text-sm relative ${isMine ? "bg-green-200 self-end ml-auto" : "bg-gray-200 self-start"
-        }`;
+    socket.emit("sendImage", data.imageUrl);
 
-      bubble.innerHTML = `<strong>${sender}</strong><br>${content}
-        <div class="text-[10px] text-right text-gray-500 mt-1">${time}</div>`;
+    fileInput.value = ""; // reset
 
-      messagesDiv.appendChild(bubble);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
+  } catch (err) {
+    console.error("Upload error:", err);
+    alert("Image upload failed");
+  }
+}
 
-    // ✍️ Typing event management
-    let typingTimeout;
-    function handleTyping() {
-      socket.emit("typing");
-      clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(() => socket.emit("stopTyping"), 1500);
-    }
+// ================= IMAGE RECEIVE =================
+socket.on("receiveImage", (data) => {
+  appendImage(data.username, data.imageUrl, data.timestamp);
+});
 
-    // 🧠 Message events
-    socket.on("chatMessage", msg => appendMessage(msg));
-    socket.on("welcome", msg => {
-      const note = document.createElement("div");
-      note.className = "text-center text-gray-400 text-xs";
-      note.innerText = msg;
-      messagesDiv.appendChild(note);
-    });
+// ================= UI FUNCTIONS =================
+function appendMessage(sender, content, timestamp) {
+  const bubble = document.createElement("div");
+  const isMine = sender === name;
+  const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // 👀 Typing indicator
-    socket.on("typing", (msg) => typingDiv.innerText = msg);
-    socket.on("stopTyping", () => typingDiv.innerText = "");
+  bubble.className = `max-w-[70%] px-4 py-2 rounded-lg ${
+    isMine ? "bg-green-200 ml-auto" : "bg-gray-200"
+  }`;
 
-    // 🔄 Update dropdown with active users
-    socket.on("userList", (users) => {
-      const select = document.getElementById("userSelect");
-      select.innerHTML = '<option disabled selected>Select a user to invite</option>';
-      for (let id in users) {
-        if (id !== mySocketId) {
-          const opt = document.createElement("option");
-          opt.value = id;
-          opt.text = users[id];
-          select.appendChild(opt);
-        }
-      }
-    });
+  bubble.innerHTML = `<strong>${sender}</strong><br>${content}
+    <div class="text-[10px] text-right">${time}</div>`;
 
-    // 📩 Invite user to room
-    function inviteUser() {
-      const select = document.getElementById("userSelect");
-      const targetSocketId = select.value;
-      if (targetSocketId) {
-        socket.emit("inviteToRoom", { targetSocketId, room });
-      }
-    }
+  messagesDiv.appendChild(bubble);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
 
-    // ✅ Accept room invitation
-    socket.on("roomInvite", ({ room, from }) => {
-      const accept = confirm(`${from} invited you to join room: ${room}. Accept?`);
-      if (accept) {
-        socket.emit("acceptInvite", { room });
-        alert(`You joined room: ${room}`);
-        document.getElementById("chat-room").innerText = `Room: ${room}`;
-      }
-    });
+function appendImage(sender, imageUrl, timestamp) {
+  const bubble = document.createElement("div");
+  const isMine = sender === name;
+  const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // 🚪 Logout user
-    function logout() {
-      localStorage.clear();
-      window.location.href = "/login.html";
-    }
+  bubble.className = `max-w-[70%] px-3 py-2 rounded-lg ${
+    isMine ? "bg-green-200 ml-auto" : "bg-gray-200"
+  }`;
 
-    // 🔄 Send message on pressing Enter key
-    input.addEventListener("keypress", function (e) {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
+  bubble.innerHTML = `
+    <strong>${sender}</strong><br>
+    <img src="${imageUrl}" class="mt-2 rounded-lg max-w-[200px] cursor-pointer"
+    onclick="window.open('${imageUrl}')"/>
+    <div class="text-[10px] text-right">${time}</div>
+  `;
 
-  </script>
+  messagesDiv.appendChild(bubble);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+// ================= TYPING =================
+let typingTimeout;
+function handleTyping() {
+  socket.emit("typing");
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => socket.emit("stopTyping"), 1500);
+}
+
+socket.on("typing", (msg) => typingDiv.innerText = msg);
+socket.on("stopTyping", () => typingDiv.innerText = "");
+
+// ================= LOGOUT =================
+function logout() {
+  localStorage.clear();
+  window.location.href = "/login.html";
+}
+
+// ENTER key
+input.addEventListener("keypress", function (e) {
+  if (e.key === "Enter") {
+    sendMessage();
+  }
+});
+
+</script>
 
 </body>
-
 </html>
