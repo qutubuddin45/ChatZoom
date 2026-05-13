@@ -1,4 +1,6 @@
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+
 const name = localStorage.getItem("name") || "User";
 let room = prompt("Enter room:", "general") || "general";
 
@@ -18,7 +20,7 @@ socket.on("connect", () => {
 });
 
 // Send text
-function sendMessage() {
+window.sendMessage = function () {
   const msg = input.value.trim();
 
   if (msg) {
@@ -26,7 +28,7 @@ function sendMessage() {
     input.value = "";
     socket.emit("stopTyping");
   }
-}
+};
 
 // Receive text
 socket.on("chatMessage", (msg) => {
@@ -34,7 +36,7 @@ socket.on("chatMessage", (msg) => {
 });
 
 // Upload image
-async function sendImage() {
+window.sendImage = async function () {
   const fileInput = document.getElementById("imageInput");
   const file = fileInput.files[0];
 
@@ -60,7 +62,7 @@ async function sendImage() {
   } catch (err) {
     alert("Image upload failed");
   }
-}
+};
 
 // Receive image
 socket.on("receiveImage", (data) => {
@@ -116,7 +118,7 @@ function appendImage(sender, imageUrl, timestamp) {
 // Typing
 let typingTimeout;
 
-function handleTyping() {
+window.handleTyping = function () {
   socket.emit("typing");
 
   clearTimeout(typingTimeout);
@@ -124,7 +126,7 @@ function handleTyping() {
   typingTimeout = setTimeout(() => {
     socket.emit("stopTyping");
   }, 1500);
-}
+};
 
 socket.on("typing", (msg) => {
   typingDiv.innerText = msg;
@@ -135,15 +137,17 @@ socket.on("stopTyping", () => {
 });
 
 // Logout
-function logout() {
+window.logout = function () {
   localStorage.clear();
   window.location.href = "./login.html";
-}
+};
 
 // Enter key
 input.addEventListener("keypress", function (e) {
   if (e.key === "Enter") {
     sendMessage();
   }
+});
+
 });
 </script>
