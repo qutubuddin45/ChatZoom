@@ -1,55 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <title>ChatZoom | Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="bg-white text-gray-800">
 
-  <!-- Navbar --> 
-   <nav class="bg-green-600 text-white px-6 py-4 flex justify-between items-center shadow-md">
-  <a href="./index.html" class="text-2xl font-bold">ChatZoom</a>
-  <ul class="flex space-x-6 text-sm font-medium">
-    <li><a href="#" class="hover:text-green-200">Home</a></li>
-    <li><a href="#features" class="hover:text-green-200">Features</a></li>
-    <li><a href="#about" class="hover:text-green-200">About</a></li>
-    <li><a href="#contact" class="hover:text-green-200">Contact</a></li>
-    <li><a href="./login.html" class="hover:text-green-200">Login</a></li>
-    <li><a href="./register.html" class="hover:text-green-200">Register</a></li>
-  </ul>
-</nav>
+  <!-- Navbar -->
+  <nav class="bg-green-600 text-white px-4 sm:px-6 py-4 shadow-md">
+    <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
 
-<section class="bg-green-100 py-20 text-center px-4">
-  <h1 class="text-5xl font-bold text-green-800 mb-4">Real-Time Chat Made Easy</h1>
-  <p class="text-lg text-green-700 mb-6">Create rooms, invite friends, and talk instantly.</p>
+      <!-- Logo -->
+      <a href="./index.html" class="text-2xl font-bold">
+        ChatZoom
+      </a>
 
-  <a href="./login.html"
-    class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition">
-    Get Started
-  </a>
-</section>
- 
+      <!-- Menu -->
+      <ul class="flex flex-wrap justify-center gap-4 text-sm font-medium">
+        <li><a href="#" class="hover:text-green-200">Home</a></li>
+        <li><a href="#features" class="hover:text-green-200">Features</a></li>
+        <li><a href="#about" class="hover:text-green-200">About</a></li>
+        <li><a href="#contact" class="hover:text-green-200">Contact</a></li>
+        <li><a href="./login.html" class="hover:text-green-200">Login</a></li>
+        <li><a href="./register.html" class="hover:text-green-200">Register</a></li>
+      </ul>
 
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="bg-green-100 py-16 sm:py-20 text-center px-4">
+    <h1 class="text-4xl sm:text-5xl font-bold text-green-800 mb-4">
+      Real-Time Chat Made Easy
+    </h1>
+
+    <p class="text-base sm:text-lg text-green-700 mb-6">
+      Create rooms, invite friends, and talk instantly.
+    </p>
+
+    <a href="./login.html"
+      class="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700 transition">
+      Get Started
+    </a>
   </section>
 
   <!-- Features -->
-  <section id="features" class="py-16 px-8 text-center bg-white">
+  <section id="features" class="py-16 px-4 sm:px-8 text-center bg-white">
     <h2 class="text-3xl font-semibold mb-8">Why ChatZoom?</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 text-left max-w-6xl mx-auto">
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-6xl mx-auto">
       <div class="p-6 border rounded shadow">
         <h3 class="text-xl font-bold mb-2">Fast & Secure</h3>
         <p>Token-based login with secure communication.</p>
       </div>
+
       <div class="p-6 border rounded shadow">
         <h3 class="text-xl font-bold mb-2">Real-Time Chat</h3>
         <p>Send and receive messages instantly.</p>
       </div>
+
       <div class="p-6 border rounded shadow">
         <h3 class="text-xl font-bold mb-2">Room Support</h3>
         <p>Create or join rooms with one click.</p>
@@ -58,25 +72,48 @@
   </section>
 
   <!-- About -->
-  <section id="about" class="py-16 px-8 bg-gray-50 text-center">
+  <section id="about" class="py-16 px-4 sm:px-8 bg-gray-50 text-center">
     <h2 class="text-3xl font-semibold mb-6">About ChatZoom</h2>
+
     <p class="max-w-3xl mx-auto text-gray-600">
-      ChatZoom is built using MongoDB, Express, Node.js, and Socket.IO for seamless real-time messaging.
+      ChatZoom is built using MongoDB, Express, Node.js, and Socket.IO
+      for seamless real-time messaging.
     </p>
   </section>
 
   <!-- Contact -->
-  <section id="contact" class="py-16 px-8 bg-gray-100 text-center">
+  <section id="contact" class="py-16 px-4 sm:px-8 bg-gray-100 text-center">
     <h2 class="text-3xl font-semibold mb-6">Contact Us</h2>
 
     <form class="max-w-xl mx-auto space-y-4" id="contactForm">
-      <input type="text" name="name" placeholder="Your Name" required class="w-full p-2 border rounded" />
-      <input type="email" name="email" placeholder="Your Email" required class="w-full p-2 border rounded" />
-      <textarea name="message" rows="4" placeholder="Your Message" required
-        class="w-full p-2 border rounded"></textarea>
+      <input
+        type="text"
+        name="name"
+        placeholder="Your Name"
+        required
+        class="w-full p-3 border rounded"
+      />
 
-      <button type="submit"
-        class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition">
+      <input
+        type="email"
+        name="email"
+        placeholder="Your Email"
+        required
+        class="w-full p-3 border rounded"
+      />
+
+      <textarea
+        name="message"
+        rows="4"
+        placeholder="Your Message"
+        required
+        class="w-full p-3 border rounded"
+      ></textarea>
+
+      <button
+        type="submit"
+        class="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700 transition"
+      >
         Send
       </button>
     </form>
